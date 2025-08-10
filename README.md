@@ -1,4 +1,4 @@
-# To test go to https://khuongngoduc0310.github.io/Flappy-Bird-with-Neural-Network
+# To test go to [this link](https://khuongngoduc0310.github.io/Flappy-Bird-with-Neural-Network)
 
 ## Available Scripts
 
