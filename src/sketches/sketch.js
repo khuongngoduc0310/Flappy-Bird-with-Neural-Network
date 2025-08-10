@@ -3,7 +3,7 @@ import Pipe from '../objects/pipe';
 import NeuralNetwork from '../NeuralNet/nn';
 
 const HEIGHT = 600;
-const WIDTH = 1200;
+const WIDTH = 600;
 const spaceOfPipes = 200;
 function getNewPipes(pipes) {
     let lastPipeX = 400;

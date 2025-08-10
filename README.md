@@ -1,6 +1,4 @@
-# Getting Started with Create React App
-
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# To test go to https://khuongngoduc0310.github.io/Flappy-Bird-with-Neural-Network
 
 ## Available Scripts
 
