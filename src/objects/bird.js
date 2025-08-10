@@ -1,5 +1,5 @@
-let gravity = 20/60;
-let flapForce = 4;
+const gravity = 20/60;
+const flapForce = 4;
 export default class Bird {
     static size = 10;
     constructor(x, y) {
@@ -25,7 +25,7 @@ export default class Bird {
         if (this.y < 0) this.y = 0;
     }
 
-    show(p){
+    show(p) {
         p.fill(255, 204, 0);
         p.ellipse(this.x,this.y,Bird.size*2,Bird.size*2);
         this.update();

@@ -2,9 +2,9 @@ import Bird from '../objects/bird';
 import Pipe from '../objects/pipe';
 import NeuralNetwork from '../NeuralNet/nn';
 
-let HEIGHT = 600;
-let WIDTH = 1200;
-let spaceOfPipes = 200;
+const HEIGHT = 600;
+const WIDTH = 1200;
+const spaceOfPipes = 200;
 function getNewPipes(pipes) {
     let lastPipeX = 400;
     if (pipes.length > 0) lastPipeX = pipes[pipes.length - 1].x; 
@@ -24,11 +24,39 @@ export default function sketch(p) {
     let totalAlive = 0;
     let closestPipe;
     let closest;
+    let mutationRate = 0.1;
+
+    function allBirdsDead() {
+            p.frameCount = 0;
+            p.noLoop();
+            birds.sort((a,b) => (a.score > b.score)?-1:1)
+            birds = birds.slice(0,numOfBirds/20);
+            for (let i = 0; i < numOfBirds/20; i++){
+                birds[i].alive = true;
+                birds[i].score = 0;
+                birds[i].y = 200;
+                birds[i].x = 100;
+                birds[i].velY = 0;
+                for (let k = 1; k < 20; k++){
+                    newBird = new Bird(100,200);
+                    newBird.setBrain(birds[i].brain.mutate(mutationRate));
+                    newBird.alive = true;
+                    birds.push(newBird);
+                }
+            }
+            pipes = [];
+            getNewPipes(pipes);
+            totalAlive = birds.length;
+            p.loop();
+            generation++;
+    }
 
     function propUpdate(props){
-        if (props.numOfBirds) {
+        if (props.parameters) {
             p.noLoop();
-            numOfBirds = props.numOfBirds;
+            numOfBirds = Number(props.parameters.numOfBirds);
+            mutationRate = Number(props.parameters.mutationRate);
+            console.log(props);
             initialize();
             p.loop();
         }
@@ -101,42 +129,12 @@ export default function sketch(p) {
                 bird.flap();
             }
         }
-        if(totalAlive === 0){
-            p.frameCount = 0;
-            p.noLoop();
-            birds.sort((a,b) => (a.score > b.score)?-1:1)
-            birds = birds.slice(0,numOfBirds/10);
-            for (let i = 0; i < numOfBirds/20; i++){
-                birds[i].alive = true;
-                birds[i].score = 0;
-                birds[i].y = 200;
-                birds[i].x = 100;
-                birds[i].velY = 0;
-                for (let k = 1; k < 20; k++){
-                    newBird = new Bird(100,200);
-                    newBird.setBrain(birds[i].brain.mutate(0.01));
-                    newBird.alive = true;
-                    birds.push(newBird);
-                }
-            }
-            pipes = [];
-            getNewPipes(pipes);
-            totalAlive = birds.length;
-            p.loop();
-            generation++;
-        }
+        if(totalAlive === 0) allBirdsDead();
         p.text(p.frameCount, 50, 20);
         p.text("Generation: " + generation, 200, 20);
         p.text("Alive: " + totalAlive, 400, 20);
         // if (bird.y >= HEIGHT) noLoop();
     }
-    // function keyPressed(){
-    //     switch(key){
-    //         case ' ': {
-    //             bird.flap();
-    //         } 
-    //     }
-    // }
     function checkCollision(bird,pipe){
         return (((bird.x + Bird.size) >= pipe.x) && ((bird.x - Bird.size) <= (pipe.x + Pipe.pipeWidth)) && (((bird.y - Bird.size) <= pipe.y) || ((bird.y + Bird.size) >= (pipe.y + Pipe.size))));
     }
