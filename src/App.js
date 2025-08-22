@@ -4,6 +4,7 @@ import ParameterForm from './components/ParameterForm';
 import sketch from './sketches/sketch'
 import React, { useState } from 'react';
 
+
 function App() {
   const [parameters, setParameters] = useState({
     numOfBirds: 1000,

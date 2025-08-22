@@ -5,13 +5,6 @@ import NeuralNetwork from '../NeuralNet/nn';
 const HEIGHT = 600;
 const WIDTH = 600;
 const spaceOfPipes = 200;
-function getNewPipes(pipes) {
-    let lastPipeX = 400;
-    if (pipes.length > 0) lastPipeX = pipes[pipes.length - 1].x; 
-    for (let i = 1; i < 11; i++){
-        pipes.push(new Pipe(lastPipeX + i * spaceOfPipes));
-    }
-}
 
 export default function sketch(p) {
 
@@ -25,6 +18,14 @@ export default function sketch(p) {
     let closestPipe;
     let closest;
     let mutationRate = 0.1;
+
+    function getNewPipes(pipes) {
+        let lastPipeX = 400;
+        if (pipes.length > 0) lastPipeX = pipes[pipes.length - 1].x; 
+        for (let i = 1; i < 11; i++){
+            pipes.push(new Pipe(lastPipeX + i * spaceOfPipes));
+        }
+    }
 
     function allBirdsDead() {
             p.frameCount = 0;
@@ -85,28 +86,33 @@ export default function sketch(p) {
 
     function draw(){
         p.background(255);
-        // bird.show();
         totalAlive = 0;
+
+        //Draw birds and count alive birds
         for (let bird of birds){
             if (bird.alive){
                 bird.show(p);
                 totalAlive++;
             }
         }
+        
+
+        //Draw pipes and check collision
         for (let pipe of pipes){
             pipe.show(p);
-            // birds = birds.filter(b => !checkCollision(b,pipe));
             if (pipe.x < 0 || pipe.x > 150)
                 continue;
-            else {
                 for (let bird of birds){
-                    if (checkCollision(bird,pipe) || bird.y > 600 || bird.y <= 0)
+                    if (checkCollision(bird,pipe) || bird.y > HEIGHT || bird.y <= 0)
                         bird.alive = false;
                 }
-            }
+            
         }
+
         closest = Infinity;
         closestPipe = null;
+
+        // Find the closest pipe
         for (let pipe of pipes){
         let d = (pipe.x + Pipe.pipeWidth + 10) - 100;
             if (d < closest && d > 0) {
@@ -114,10 +120,13 @@ export default function sketch(p) {
                 closest = d;
             }
         }
+        // Remove off-screen pipes and add new pipes
         pipes = pipes.filter((p) => p.x > -100);
         if (pipes.length < 10) getNewPipes(pipes);
+
+        // Make decision
         for (let bird of birds){
-            if (!bird.alive) continue;
+            if (!bird.alive) continue; // Skip dead birds
             let input = [];
             input[0] = bird.y;
             input[1] = closestPipe.y;
@@ -129,6 +138,7 @@ export default function sketch(p) {
                 bird.flap();
             }
         }
+        
         if(totalAlive === 0) allBirdsDead();
         p.text(p.frameCount, 50, 20);
         p.text("Generation: " + generation, 200, 20);

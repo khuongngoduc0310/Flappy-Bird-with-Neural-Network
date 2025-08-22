@@ -1,7 +1,10 @@
-const gravity = 20/60;
-const flapForce = 4;
+
 export default class Bird {
+
     static size = 10;
+    static gravity = 0.6;
+    static flapForce = 4;
+
     constructor(x, y) {
         this.x = x;
         this.y = y; 
@@ -15,12 +18,12 @@ export default class Bird {
     }
 
     flap() {
-        this.velY = -flapForce;
+        this.velY = -Bird.flapForce;
     } 
 
     update(){
         this.y += this.velY;
-        this.velY += gravity;
+        this.velY += Bird.gravity;
         // this.velY *= 0.95;
         if (this.y < 0) this.y = 0;
     }
