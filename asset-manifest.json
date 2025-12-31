@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/Flappy-Bird-with-Neural-Network/static/css/main.2d5f6574.css",
-    "main.js": "/Flappy-Bird-with-Neural-Network/static/js/main.321f5a1d.js",
+    "main.js": "/Flappy-Bird-with-Neural-Network/static/js/main.59a19a56.js",
     "static/js/453.235ec80b.chunk.js": "/Flappy-Bird-with-Neural-Network/static/js/453.235ec80b.chunk.js",
     "index.html": "/Flappy-Bird-with-Neural-Network/index.html",
     "main.2d5f6574.css.map": "/Flappy-Bird-with-Neural-Network/static/css/main.2d5f6574.css.map",
-    "main.321f5a1d.js.map": "/Flappy-Bird-with-Neural-Network/static/js/main.321f5a1d.js.map",
+    "main.59a19a56.js.map": "/Flappy-Bird-with-Neural-Network/static/js/main.59a19a56.js.map",
     "453.235ec80b.chunk.js.map": "/Flappy-Bird-with-Neural-Network/static/js/453.235ec80b.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.2d5f6574.css",
-    "static/js/main.321f5a1d.js"
+    "static/js/main.59a19a56.js"
   ]
 }
