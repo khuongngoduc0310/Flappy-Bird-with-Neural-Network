@@ -1,6 +1,5 @@
 import Matrix from './matrix';
 import Layer from './layer';
-import dimensions from './brainDimension';
 
 export default class NeuralNetwork {
     constructor(layers) {
@@ -45,6 +44,7 @@ export default class NeuralNetwork {
         return m_input.map(e => { return 1 / (1 + Math.exp(-e)) });
     }
     mutate(rate) {
+        const dimensions = this.layers.map(l => l.length);
         let mutation = new NeuralNetwork(dimensions);
         for (let i in mutation.weights) {
             mutation.weights[i] = Matrix.generateMutation(this.weights[i], rate);

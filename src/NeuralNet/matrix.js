@@ -22,6 +22,15 @@ export default class Matrix {
         return this;
     }
 
+    fill(n) {
+        for (let i = 0; i < this.rows; i++) {
+            for (let j = 0; j < this.cols; j++) {
+                this.data[i][j] = n;
+            }
+        }
+        return this;
+    }
+
     static add(a, b) {
         let result = new Matrix(a.rows, a.cols);
         let data = result.data;
@@ -90,7 +99,7 @@ export default class Matrix {
     static generateMutation(a, rate) {
         let result = new Matrix(a.rows, a.cols);
         for (let i in a.data) {
-            result.data[i] = a.data[i].map((x) => { return (Math.random() < rate) ? x + Matrix.randomGaussian(0, 0.01) : x })
+            result.data[i] = a.data[i].map((x) => { return (Math.random() < rate) ? x + Matrix.randomGaussian(0, 0.1) : x })
         }
         return result;
     }

@@ -1,9 +1,9 @@
 import React from 'react';
 import { ReactP5Wrapper } from "@p5-wrapper/react";
 
-const P5Wrapper = ({ sketch, parameters }) => {
+const P5Wrapper = (props) => {
     return (
-        <ReactP5Wrapper sketch={sketch} parameters={parameters} />
+        <ReactP5Wrapper {...props} />
     );
 };
 

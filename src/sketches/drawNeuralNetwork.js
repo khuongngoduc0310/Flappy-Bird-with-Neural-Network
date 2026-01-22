@@ -1,80 +1,116 @@
-export default function drawNeuralNetwork(p, weights, x, y, w, h, inputLabels = []) {
+export default function drawNeuralNetwork(p, weights, biases, x, y, w, h, inputLabels = []) {
 
     if (!weights || !weights.length) {
         return;
     }
     const layers = [];
-    // Input layer size: Rows of the first weight matrix (Source nodes)
     layers.push(weights[0].rows);
-    // Hidden and Output layers sizes: Cols of each weight matrix (Destination nodes)
     for (let i = 0; i < weights.length; i++) {
         layers.push(weights[i].cols);
     }
 
     const layerGap = w / (layers.length - 1);
-    const nodeSize = 10; // Diameter of neurons
-
-    // Helper to get node position
+    const nodeSize = 10;
+    
+    // getNodePos handles standard nodes and the bias node (nodeIndex === layerSize)
     const getNodePos = (layerIndex, nodeIndex) => {
         const layerSize = layers[layerIndex];
+        const effectiveSize = layerIndex < layers.length - 1 ? layerSize + 1 : layerSize;
         const xPos = x + layerIndex * layerGap;
-        const spacing = h / (layerSize + 1);
+        const spacing = h / (effectiveSize + 1);
         const yPos = y + (nodeIndex + 1) * spacing;
         return { x: xPos, y: yPos };
     };
 
-    // Draw connections (Weights)
-    // weights[l] connects layers[l] to layers[l+1]
-    // Matrix dimensions: (Rows: Source) x (Cols: Destination)
-
+    // 1. Draw Weight Connections
     for (let l = 0; l < weights.length; l++) {
         const weightMatrix = weights[l];
-        const srcLayerIndex = l;
-        const destLayerIndex = l + 1;
-        const srcCount = weightMatrix.rows; // Rows are source nodes
-        const destCount = weightMatrix.cols; // Cols are destination nodes
+        const srcCount = weightMatrix.rows;
+        const destCount = weightMatrix.cols;
 
-        for (let i = 0; i < srcCount; i++) { // For each source node (row)
-            for (let j = 0; j < destCount; j++) { // For each dest node (col)
-                const val = weightMatrix.data[i][j]; // data[src][dest]
-                const srcPos = getNodePos(srcLayerIndex, i);
-                const destPos = getNodePos(destLayerIndex, j);
+        for (let i = 0; i < srcCount; i++) {
+            for (let j = 0; j < destCount; j++) {
+                const val = weightMatrix.data[i][j];
+                const srcPos = getNodePos(l, i);
+                const destPos = getNodePos(l + 1, j);
 
-                // Set color based on weight
                 if (val > 0) {
-                    p.stroke(0, 0, 255, p.map(val, 0, 1, 50, 255)); // Blue for positive
+                    p.stroke(0, 0, 255, p.map(val, 0, 1, 30, 200));
                 } else {
-                    p.stroke(255, 0, 0, p.map(Math.abs(val), 0, 1, 50, 255)); // Red for negative
+                    p.stroke(255, 0, 0, p.map(Math.abs(val), 0, 1, 30, 200));
                 }
-                p.strokeWeight(Math.max(Math.abs(val) * 3, 0)); // Thickness based on weight
+                p.strokeWeight(Math.max(Math.abs(val) * 2, 0.5));
                 p.line(srcPos.x, srcPos.y, destPos.x, destPos.y);
             }
         }
     }
 
+    // 2. Draw Bias Connections
+    if (biases) {
+        for (let l = 0; l < biases.length; l++) {
+            const biasMatrix = biases[l]; // (1 x destNodes)
+            const destCount = biasMatrix.cols;
+            const biasNodePos = getNodePos(l, layers[l]); // The +1 node at the bottom
 
-    // Draw nodes
+            for (let j = 0; j < destCount; j++) {
+                const val = biasMatrix.data[0][j];
+                const destPos = getNodePos(l + 1, j);
+
+                if (val > 0) {
+                    p.stroke(0, 0, 255, p.map(val, 0, 1, 30, 200));
+                } else {
+                    p.stroke(255, 0, 0, p.map(Math.abs(val), 0, 1, 30, 200));
+                }
+                p.strokeWeight(Math.max(Math.abs(val) * 2, 0.5));
+                p.line(biasNodePos.x, biasNodePos.y, destPos.x, destPos.y);
+            }
+        }
+    }
+
+    // 3. Draw Nodes and Labels
     for (let l = 0; l < layers.length; l++) {
-        for (let i = 0; i < layers[l]; i++) {
+        const isLastLayer = l === layers.length - 1;
+        const nodesInLayer = layers[l];
+        
+        // Loop through standard nodes
+        for (let i = 0; i < nodesInLayer; i++) {
             const pos = getNodePos(l, i);
             p.noStroke();
             p.fill(50);
             p.ellipse(pos.x, pos.y, nodeSize);
 
-            // Draw labels for input layer
-            if (l === 0 && inputLabels && inputLabels[i]) {
+            // Input Labels
+            if (l === 0 && inputLabels[i]) {
                 p.fill(0);
                 p.textAlign(p.RIGHT, p.CENTER);
                 p.textSize(10);
-                p.text(inputLabels[i], pos.x - 10, pos.y);
+                p.text(inputLabels[i], pos.x - 12, pos.y);
             }
-            // Draw label for output layer
-            if (l === layers.length - 1) {
+            // Output Label
+            if (isLastLayer) {
                 p.fill(0);
                 p.textAlign(p.LEFT, p.CENTER);
-                p.textSize(10);
-                p.text("Flap", pos.x + 10, pos.y);
+                p.textSize(12);
+                p.text("Flap", pos.x + 12, pos.y);
             }
+        }
+
+        // Add Bias Node (except for output layer)
+        if (!isLastLayer) {
+            const bPos = getNodePos(l, nodesInLayer);
+            p.noStroke();
+            p.fill(255, 126, 0); // Yellow for Bias Node
+            p.ellipse(bPos.x, bPos.y, nodeSize + 2);
+            p.fill(0);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.textSize(8);
+            p.text("1", bPos.x, bPos.y);
+            
+            p.fill(0);
+            p.textAlign(p.RIGHT, p.CENTER);
+            p.textSize(9);
+            p.text("bias", bPos.x - 12, bPos.y);
         }
     }
 }
+
