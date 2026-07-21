@@ -9,6 +9,8 @@ function App() {
   const [parameters, setParameters] = useState({
     numOfBirds: 1000,
     mutationRate: 0.1,
+    mutationStrength: 0.1,
+    ticksPerFrame: 1,
     bestBird: null,
     brainDimensions: [5, 1]
   });

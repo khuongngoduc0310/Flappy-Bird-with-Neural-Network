@@ -23,11 +23,13 @@ export default function sketch(p) {
     let pipes = [];
     let generation = 1;
     let nn;
-    let newBird;
     let totalAlive = 0;
     let closestPipe;
     let closest;
     let mutationRate = 0.1;
+    let mutationStrength = 0.1;
+    let ticksPerFrame = 1;
+    let displayBird = null;
 
     function getNewPipes(pipes) {
         let lastPipeX = 400;
@@ -52,25 +54,34 @@ export default function sketch(p) {
             });
         }
 
-        birds = birds.slice(0, numOfBirds / 20);
-        for (let i = 0; i < numOfBirds / 20; i++) {
-            birds[i].alive = true;
-            birds[i].score = 0;
-            birds[i].y = 200;
-            birds[i].x = 100;
-            birds[i].velY = 0;
-            for (let k = 1; k < 20; k++) {
-                newBird = new Bird(100, 200);
-                newBird.setBrain(birds[i].brain.mutate(mutationRate));
-                newBird.alive = true;
-                birds.push(newBird);
-            }
+        const survivorCount = Math.max(2, Math.floor(numOfBirds / 20));
+        const survivors = birds.slice(0, survivorCount);
+        const nextGeneration = [];
+
+        // Elitism: preserve the best brain unchanged so progress is not lost.
+        const eliteBird = new Bird(100, 200);
+        eliteBird.setBrain(survivors[0].brain.copy());
+        nextGeneration.push(eliteBird);
+
+        while (nextGeneration.length < numOfBirds) {
+            const parentA = pickParent(survivors);
+            const parentB = pickParent(survivors);
+            const childBrain = NeuralNetwork.crossover(parentA.brain, parentB.brain).mutate(mutationRate, mutationStrength);
+            const child = new Bird(100, 200);
+            child.setBrain(childBrain);
+            nextGeneration.push(child);
         }
+
+        birds = nextGeneration;
         pipes = [];
         getNewPipes(pipes);
         totalAlive = birds.length;
         p.loop();
         generation++;
+    }
+
+    function pickParent(survivors) {
+        return survivors[Math.floor(Math.random() * survivors.length)];
     }
 
     let currentDimensions = [];
@@ -81,6 +92,8 @@ export default function sketch(p) {
             p.noLoop();
             numOfBirds = Math.max(Number(props.parameters.numOfBirds), 100);
             mutationRate = Number(props.parameters.mutationRate);
+            mutationStrength = Number(props.parameters.mutationStrength) || 0.1;
+            ticksPerFrame = Math.max(1, Number(props.parameters.ticksPerFrame) || 1);
             if (props.parameters.brainDimensions) {
                 currentDimensions = props.parameters.brainDimensions;
             }
@@ -109,48 +122,39 @@ export default function sketch(p) {
 
     function setup() {
         p.createCanvas(WIDTH, HEIGHT);
-        p.frameRate(120); // Set frame rate to 120
+        p.frameRate(60);
         p.textSize(30);
         p.textAlign(p.CENTER, p.CENTER);
     }
 
     function draw() {
-        p.background(255);
-        totalAlive = 0;
-
-        //Draw birds and count alive birds
-        for (let bird of birds) {
-            if (bird.alive) {
-                bird.show(p, birdImg);
-                totalAlive++;
-            }
+        for (let i = 0; i < ticksPerFrame; i++) {
+            const generationContinues = updateSimulation();
+            if (!generationContinues) break;
         }
 
+        renderSimulation();
+    }
 
-        //Draw pipes and check collision
+    function updateSimulation() {
+        displayBird = null;
+
+        for (let bird of birds) {
+            if (bird.alive) bird.update();
+        }
+
         for (let pipe of pipes) {
-            pipe.show(p, pipeImg);
-            // Birds are at x=100. Pipes move from right to left.
-            // Check collision as soon as pipe is near the bird's x range (80-120)
-            if (pipe.x < 150 && pipe.x > 0) {
-                for (let bird of birds) {
-                    if (bird.alive) {
-                        if (checkCollision(bird, pipe) || (bird.y + Bird.size) >= HEIGHT || (bird.y - Bird.size) <= 0) {
-                            bird.alive = false;
-                        }
-                    }
-                }
-            }
+            pipe.update();
         }
 
         closest = Infinity;
         closestPipe = null;
 
-        // Find the closest pipe that the bird hasn't fully passed yet
+        // Find the closest pipe that the bird hasn't fully passed yet.
         for (let pipe of pipes) {
             // Bird's back is at 100 - size (20) = 80.
-            // Pipe's tail is at pipe.x + Pipe.pipeWidth (65)
-            // We want the pipe where the tail is still >= 80
+            // Pipe's tail is at pipe.x + Pipe.pipeWidth (65).
+            // We want the pipe where the tail is still >= 80.
             let pipeTail = pipe.x + Pipe.pipeWidth;
             let d = pipeTail - (100 - Bird.size);
             if (d > 0 && d < closest) {
@@ -158,25 +162,36 @@ export default function sketch(p) {
                 closest = d;
             }
         }
-        
-        // Remove off-screen pipes and add new pipes
+
+        // Check collision only against the active pipe instead of every pipe.
+        for (let bird of birds) {
+            if (!bird.alive) continue;
+            if (
+                (closestPipe && checkCollision(bird, closestPipe)) ||
+                (bird.y + Bird.size) >= HEIGHT ||
+                (bird.y - Bird.size) <= 0
+            ) {
+                bird.alive = false;
+            }
+        }
+
+        // Remove off-screen pipes and add new pipes.
         pipes = pipes.filter((p) => p.x > -100);
         if (pipes.length < 10) getNewPipes(pipes);
 
-        // Make decision
-        let displayBird = null;
+        // Make decisions for the next simulation tick.
         if (closestPipe) {
             for (let bird of birds) {
                 if (!bird.alive) continue;
-                
-                let input = [];
+
+                const input = bird.inputs;
                 // NORMALIZED INPUTS (Values between 0 and 1 generally help NN learn faster)
                 input[0] = bird.y / HEIGHT;
                 input[1] = closestPipe.y / HEIGHT; // Top of gap
                 input[2] = (closestPipe.y + Pipe.size) / HEIGHT; // Bottom of gap
                 input[3] = (closestPipe.x - bird.x) / WIDTH; // Horizontal distance
                 input[4] = bird.velY / 15; // Normalized velocity
-                
+
                 let prediction = bird.brain.predict(input);
                 if (prediction[0] >= 0.5) {
                     bird.flap();
@@ -185,18 +200,36 @@ export default function sketch(p) {
             }
         }
 
-        if (totalAlive === 0) allBirdsDead();
-        
+        totalAlive = birds.reduce((count, bird) => count + (bird.alive ? 1 : 0), 0);
+        if (totalAlive === 0) {
+            allBirdsDead();
+            return false;
+        }
+        return true;
+    }
+
+    function renderSimulation() {
+        p.background(255);
+
+        for (let bird of birds) {
+            if (bird.alive) {
+                bird.show(p, birdImg);
+            }
+        }
+
+        for (let pipe of pipes) {
+            pipe.show(p, pipeImg);
+        }
+
         p.textSize(20);
         p.text(p.frameCount, 50, 20);
         p.text("Generation: " + generation, 200, 20);
-        
-        const inputLabels = ["bird.y", "gap.top", "gap.bottom", "dist.x", "bird.velY"];
-        if (displayBird)
-            drawNeuralNetwork(p, displayBird.brain.weights, displayBird.brain.biases, 100, HEIGHT - 330, 300, 300, inputLabels);
-        p.textSize(20);
         p.text("Alive: " + totalAlive, 400, 20);
-        // if (bird.y >= HEIGHT) noLoop();
+        p.text("Speed: " + ticksPerFrame + "x", 560, 20);
+
+        const inputLabels = ["bird.y", "gap.top", "gap.bottom", "dist.x", "bird.velY"];
+        if (displayBird && ticksPerFrame <= 3)
+            drawNeuralNetwork(p, displayBird.brain.weights, displayBird.brain.biases, 100, HEIGHT - 330, 300, 300, inputLabels);
     }
 
     function checkCollision(bird, pipe) {

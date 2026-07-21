@@ -11,6 +11,7 @@ export default class Bird {
         this.velY = 0;
         this.score = 0;
         this.alive = true;
+        this.inputs = [0, 0, 0, 0, 0];
     }
 
     setBrain(nn){
@@ -26,6 +27,7 @@ export default class Bird {
         this.velY += Bird.gravity;
         // this.velY *= 0.95;
         if (this.y < 0) this.y = 0;
+        if (this.alive) this.score += 1;
     }
 
     show(p, img) {
@@ -42,7 +44,5 @@ export default class Bird {
             p.fill(255, 204, 0);
             p.ellipse(this.x, this.y, Bird.size * 2, Bird.size * 2);
         }
-        this.update();
-        if (this.alive) this.score += 1;
     }
 }

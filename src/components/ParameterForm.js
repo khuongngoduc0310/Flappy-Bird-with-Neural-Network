@@ -5,6 +5,8 @@ const ParameterForm = ({ parameters, onChangeParameters }) => {
     const [formState, setFormState] = useState({
         numOfBirds: parameters.numOfBirds || 1000,
         mutationRate: parameters.mutationRate || 0.1,
+        mutationStrength: parameters.mutationStrength || 0.1,
+        ticksPerFrame: parameters.ticksPerFrame || 1,
         brainDimensions: parameters.brainDimensions || [4, 5, 1],
         bestBird: parameters.bestBird || null
     });
@@ -13,6 +15,8 @@ const ParameterForm = ({ parameters, onChangeParameters }) => {
         setFormState({
             numOfBirds: parameters.numOfBirds || 1000,
             mutationRate: parameters.mutationRate || 0.1,
+            mutationStrength: parameters.mutationStrength || 0.1,
+            ticksPerFrame: parameters.ticksPerFrame || 1,
             brainDimensions: parameters.brainDimensions || [4, 5, 1],
             bestBird: parameters.bestBird || null
         });
@@ -66,6 +70,46 @@ const ParameterForm = ({ parameters, onChangeParameters }) => {
                             onChange={handleChange}
                         />
                         <span>0.5</span>
+                    </div>
+                </div>
+
+                <div className="form-group">
+                    <div className="mutation-label-row">
+                        <label>Mutation Strength</label>
+                        <span className="mutation-value">{formState.mutationStrength}</span>
+                    </div>
+                    <div className="range-container">
+                        <span>0.01</span>
+                        <input
+                            type="range"
+                            name="mutationStrength"
+                            min="0.01"
+                            max="1"
+                            step="0.01"
+                            value={formState.mutationStrength}
+                            onChange={handleChange}
+                        />
+                        <span>1</span>
+                    </div>
+                </div>
+
+                <div className="form-group">
+                    <div className="mutation-label-row">
+                        <label>Simulation Speed</label>
+                        <span className="mutation-value">{formState.ticksPerFrame}x</span>
+                    </div>
+                    <div className="range-container">
+                        <span>1x</span>
+                        <input
+                            type="range"
+                            name="ticksPerFrame"
+                            min="1"
+                            max="20"
+                            step="1"
+                            value={formState.ticksPerFrame}
+                            onChange={handleChange}
+                        />
+                        <span>20x</span>
                     </div>
                 </div>
 

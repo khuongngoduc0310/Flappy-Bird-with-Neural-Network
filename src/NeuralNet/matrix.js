@@ -89,6 +89,27 @@ export default class Matrix {
         }
         return result;
     }
+
+    static map(a, fn) {
+        let result = new Matrix(a.rows, a.cols);
+        for (let i = 0; i < a.rows; i++) {
+            for (let j = 0; j < a.cols; j++) {
+                result.data[i][j] = fn(a.data[i][j], i, j);
+            }
+        }
+        return result;
+    }
+
+    static crossover(a, b) {
+        let result = new Matrix(a.rows, a.cols);
+        for (let i = 0; i < a.rows; i++) {
+            for (let j = 0; j < a.cols; j++) {
+                result.data[i][j] = Math.random() < 0.5 ? a.data[i][j] : b.data[i][j];
+            }
+        }
+        return result;
+    }
+
     static randomGaussian(mean = 0, stdev = 1) {
         let u = 1 - Math.random(); // uniform(0,1) random doubles
         let v = 1 - Math.random();
@@ -96,10 +117,10 @@ export default class Matrix {
         return num * stdev + mean; // random normal(mean, stdev)
     }
 
-    static generateMutation(a, rate) {
+    static generateMutation(a, rate, strength = 0.1) {
         let result = new Matrix(a.rows, a.cols);
         for (let i in a.data) {
-            result.data[i] = a.data[i].map((x) => { return (Math.random() < rate) ? x + Matrix.randomGaussian(0, 0.1) : x })
+            result.data[i] = a.data[i].map((x) => { return (Math.random() < rate) ? x + Matrix.randomGaussian(0, strength) : x })
         }
         return result;
     }

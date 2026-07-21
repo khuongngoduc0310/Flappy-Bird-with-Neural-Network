@@ -14,17 +14,6 @@ export default class NeuralNetwork {
         this.layers.push(layer);
         let n = this.layers.length;
         if (n > 1) {
-            /*
-            let layerWeigth = []
-            for (iNode of layers[n-2]){
-                let nodeWeight = [];
-                for (oNode of layers[n-1]){
-                    nodeWeight.push(Math.random())
-                }
-                layerWeigth.push(nodeWeight);
-            }
-            this.weights.push(layerWeigth);
-            */
             let weight = new Matrix(this.layers[n - 2].length, this.layers[n - 1].length).randomize();
             let bias = new Matrix(1, this.layers[n - 1].length).randomize();
             this.weights.push(weight);
@@ -32,24 +21,48 @@ export default class NeuralNetwork {
         }
         return this;
     }
+    static sigmoid(x) {
+        return 1 / (1 + Math.exp(-x));
+    }
+
     predict(input) {
         let m_input = new Matrix(1, input.length);
         for (let i = 0; i < input.length; i++)
             m_input.data[0][i] = input[i];
         for (let i in this.weights) {
             m_input = Matrix.dot(m_input, this.weights[i]);
-            m_input = Matrix.add(m_input, this.biases[i])
+            m_input = Matrix.add(m_input, this.biases[i]);
+            m_input = Matrix.map(m_input, NeuralNetwork.sigmoid);
         }
-        m_input = m_input.data[0];
-        return m_input.map(e => { return 1 / (1 + Math.exp(-e)) });
+        return m_input.data[0];
     }
-    mutate(rate) {
+    copy() {
+        const dimensions = this.layers.map(l => l.length);
+        let clone = new NeuralNetwork(dimensions);
+        for (let i in clone.weights) {
+            clone.weights[i] = Matrix.copy(this.weights[i]);
+            clone.biases[i] = Matrix.copy(this.biases[i]);
+        }
+        return clone;
+    }
+
+    mutate(rate, strength = 0.1) {
         const dimensions = this.layers.map(l => l.length);
         let mutation = new NeuralNetwork(dimensions);
         for (let i in mutation.weights) {
-            mutation.weights[i] = Matrix.generateMutation(this.weights[i], rate);
-            mutation.biases[i] = Matrix.generateMutation(this.biases[i], rate);
+            mutation.weights[i] = Matrix.generateMutation(this.weights[i], rate, strength);
+            mutation.biases[i] = Matrix.generateMutation(this.biases[i], rate, strength);
         }
         return mutation;
+    }
+
+    static crossover(parentA, parentB) {
+        const dimensions = parentA.layers.map(l => l.length);
+        let child = new NeuralNetwork(dimensions);
+        for (let i in child.weights) {
+            child.weights[i] = Matrix.crossover(parentA.weights[i], parentB.weights[i]);
+            child.biases[i] = Matrix.crossover(parentA.biases[i], parentB.biases[i]);
+        }
+        return child;
     }
 }

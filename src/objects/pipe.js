@@ -6,6 +6,10 @@ export default class Pipe{
         this.x = x;
     }
 
+    update(){
+        this.x -= 3;
+    }
+
     show(p, img){
         const headHeight = 35;
         const headWidth = Pipe.pipeWidth + 6;
@@ -47,6 +51,5 @@ export default class Pipe{
             p.rect(this.x, 0, Pipe.pipeWidth, this.y);
             p.rect(this.x, this.y + Pipe.size, Pipe.pipeWidth, 600 - this.y - Pipe.size);
         }
-        this.x -= 3;   
     }
 }
