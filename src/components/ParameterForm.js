@@ -1,25 +1,23 @@
 import React, { useState, useEffect } from 'react';
 
+const DEFAULT_BRAIN_DIMENSIONS = [5, 1];
+
+const editableParameters = (parameters) => ({
+    numOfBirds: parameters.numOfBirds ?? 1000,
+    mutationRate: parameters.mutationRate ?? 0.1,
+    mutationStrength: parameters.mutationStrength ?? 0.1,
+    ticksPerFrame: parameters.ticksPerFrame ?? 1,
+    brainDimensions: parameters.brainDimensions || DEFAULT_BRAIN_DIMENSIONS,
+});
+
 const ParameterForm = ({ parameters, onChangeParameters }) => {
 
-    const [formState, setFormState] = useState({
-        numOfBirds: parameters.numOfBirds || 1000,
-        mutationRate: parameters.mutationRate || 0.1,
-        mutationStrength: parameters.mutationStrength || 0.1,
-        ticksPerFrame: parameters.ticksPerFrame || 1,
-        brainDimensions: parameters.brainDimensions || [4, 5, 1],
-        bestBird: parameters.bestBird || null
-    });
+    // Note: bestBird is NOT part of form state — it is managed at the App level.
+    // The form only controls editable parameters; champion loading is a separate action.
+    const [formState, setFormState] = useState(() => editableParameters(parameters));
 
     useEffect(() => {
-        setFormState({
-            numOfBirds: parameters.numOfBirds || 1000,
-            mutationRate: parameters.mutationRate || 0.1,
-            mutationStrength: parameters.mutationStrength || 0.1,
-            ticksPerFrame: parameters.ticksPerFrame || 1,
-            brainDimensions: parameters.brainDimensions || [4, 5, 1],
-            bestBird: parameters.bestBird || null
-        });
+        setFormState(editableParameters(parameters));
     }, [parameters]);
 
     const handleChange = (e) => {
@@ -32,7 +30,14 @@ const ParameterForm = ({ parameters, onChangeParameters }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onChangeParameters(formState);
+        onChangeParameters({
+            ...formState,
+            numOfBirds: Math.max(2, Math.floor(Number(formState.numOfBirds) || 2)),
+            mutationRate: Number(formState.mutationRate),
+            mutationStrength: Number(formState.mutationStrength),
+            ticksPerFrame: Math.max(1, Math.floor(Number(formState.ticksPerFrame) || 1)),
+            brainDimensions: formState.brainDimensions.map(Number),
+        });
     }
 
     return (
@@ -50,7 +55,7 @@ const ParameterForm = ({ parameters, onChangeParameters }) => {
                             </div>
                         </div>
                     </label>
-                    <input type="number" name="numOfBirds" value={formState.numOfBirds} onChange={handleChange} />
+                    <input type="number" name="numOfBirds" min="2" value={formState.numOfBirds} onChange={handleChange} />
                 </div>
                 
                 <div className="form-group">

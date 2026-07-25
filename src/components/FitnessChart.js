@@ -13,7 +13,6 @@ const FitnessChart = ({ data }) => {
 
     // Find max values for scaling
     const maxScore = Math.max(...data.map(d => d.score), 10); // Minimum scale of 10
-    console.log(maxScore);
     const maxGen = Math.max(...data.map(d => d.generation), 10);
 
     // Helpers to map values to coordinates

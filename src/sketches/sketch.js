@@ -8,6 +8,44 @@ import drawNeuralNetwork from './drawNeuralNetwork';
 const HEIGHT = 600;
 const WIDTH = 800;
 const spaceOfPipes = 250;
+const DEFAULT_BRAIN_DIMENSIONS = [5, 1];
+
+function simulationDimensions(dimensions) {
+    return NeuralNetwork.isValidArchitecture(dimensions, 5, 1)
+        ? [...dimensions]
+        : [...DEFAULT_BRAIN_DIMENSIONS];
+}
+
+/**
+ * Build a generation from ranked survivors. The first child is an unchanged
+ * elite; all other children use two distinct parents when possible.
+ */
+export function breedPopulation(survivors, populationSize, mutationRate, mutationStrength) {
+    if (!Array.isArray(survivors) || survivors.length === 0) return [];
+
+    const targetSize = Math.max(2, Math.floor(populationSize));
+    const nextGeneration = [];
+    const eliteBird = new Bird(100, 200);
+    eliteBird.setBrain(survivors[0].brain.copy());
+    nextGeneration.push(eliteBird);
+
+    while (nextGeneration.length < targetSize) {
+        const parentAIndex = Math.floor(Math.random() * survivors.length);
+        let parentBIndex = parentAIndex;
+        if (survivors.length > 1) {
+            const offset = 1 + Math.floor(Math.random() * (survivors.length - 1));
+            parentBIndex = (parentAIndex + offset) % survivors.length;
+        }
+        const childBrain = NeuralNetwork
+            .crossover(survivors[parentAIndex].brain, survivors[parentBIndex].brain)
+            .mutate(mutationRate, mutationStrength);
+        const child = new Bird(100, 200);
+        child.setBrain(childBrain);
+        nextGeneration.push(child);
+    }
+
+    return nextGeneration;
+}
 
 export default function sketch(p) {
 
@@ -30,6 +68,7 @@ export default function sketch(p) {
     let mutationStrength = 0.1;
     let ticksPerFrame = 1;
     let displayBird = null;
+    let currentBestBird = null;
 
     function getNewPipes(pipes) {
         let lastPipeX = 400;
@@ -48,31 +87,18 @@ export default function sketch(p) {
         birds.sort((a, b) => b.score - a.score);
 
         if (onGenerationEnd) {
+            const bestBird = birds[0];
             onGenerationEnd({
                 generation: generation,
-                score: birds[0].score
+                score: bestBird.score,
+                bestBrain: bestBird.brain.serialize()
             });
         }
 
         const survivorCount = Math.max(2, Math.floor(numOfBirds / 20));
         const survivors = birds.slice(0, survivorCount);
-        const nextGeneration = [];
 
-        // Elitism: preserve the best brain unchanged so progress is not lost.
-        const eliteBird = new Bird(100, 200);
-        eliteBird.setBrain(survivors[0].brain.copy());
-        nextGeneration.push(eliteBird);
-
-        while (nextGeneration.length < numOfBirds) {
-            const parentA = pickParent(survivors);
-            const parentB = pickParent(survivors);
-            const childBrain = NeuralNetwork.crossover(parentA.brain, parentB.brain).mutate(mutationRate, mutationStrength);
-            const child = new Bird(100, 200);
-            child.setBrain(childBrain);
-            nextGeneration.push(child);
-        }
-
-        birds = nextGeneration;
+        birds = breedPopulation(survivors, numOfBirds, mutationRate, mutationStrength);
         pipes = [];
         getNewPipes(pipes);
         totalAlive = birds.length;
@@ -80,25 +106,73 @@ export default function sketch(p) {
         generation++;
     }
 
-    function pickParent(survivors) {
-        return survivors[Math.floor(Math.random() * survivors.length)];
-    }
-
-    let currentDimensions = [];
+    let currentDimensions = [...DEFAULT_BRAIN_DIMENSIONS];
+    let previousParamsKey = null;
+    let previousRestartCounter = 0;
 
     function propUpdate(props) {
         onGenerationEnd = props.onGenerationEnd;
+
+        // Detect intentional restart request (form submit, load champion, etc.)
+        const propsRestartCounter = props.restartCounter !== undefined ? props.restartCounter : 0;
+        const restartTriggered = propsRestartCounter !== previousRestartCounter;
+        if (restartTriggered) {
+            previousRestartCounter = propsRestartCounter;
+        }
+
         if (props.parameters) {
-            p.noLoop();
-            numOfBirds = Math.max(Number(props.parameters.numOfBirds), 100);
-            mutationRate = Number(props.parameters.mutationRate);
-            mutationStrength = Number(props.parameters.mutationStrength) || 0.1;
-            ticksPerFrame = Math.max(1, Number(props.parameters.ticksPerFrame) || 1);
-            if (props.parameters.brainDimensions) {
-                currentDimensions = props.parameters.brainDimensions;
+            const requestedPopulation = Number(props.parameters.numOfBirds);
+            const requestedMutationRate = Number(props.parameters.mutationRate);
+            const requestedMutationStrength = Number(props.parameters.mutationStrength);
+            const newNumOfBirds = Number.isFinite(requestedPopulation)
+                ? Math.max(2, Math.floor(requestedPopulation))
+                : 1000;
+            const newMutationRate = Number.isFinite(requestedMutationRate)
+                ? Math.min(1, Math.max(0, requestedMutationRate))
+                : 0.1;
+            const newMutationStrength = Number.isFinite(requestedMutationStrength) && requestedMutationStrength >= 0
+                ? requestedMutationStrength
+                : 0.1;
+            const newTicksPerFrame = Math.max(1, Math.floor(Number(props.parameters.ticksPerFrame) || 1));
+            const newDimensions = simulationDimensions(props.parameters.brainDimensions || currentDimensions);
+            const newBestBird = props.parameters.bestBird || null;
+
+            // Build a key from parameters that require a fresh simulation.
+            // Speed is updated live, while raw restart-sensitive prop values
+            // are retained even when runtime values are normalized.
+            const paramsKey = JSON.stringify({
+                numOfBirds: props.parameters.numOfBirds,
+                mutationRate: props.parameters.mutationRate,
+                mutationStrength: props.parameters.mutationStrength,
+                brainDimensions: props.parameters.brainDimensions || currentDimensions,
+                bestBird: props.parameters.bestBird || null
+            });
+
+            const paramsChanged = paramsKey !== previousParamsKey;
+
+            // Always update the local variables regardless of reinitialization
+            numOfBirds = newNumOfBirds;
+            mutationRate = newMutationRate;
+            mutationStrength = newMutationStrength;
+            ticksPerFrame = newTicksPerFrame;
+            currentDimensions = newDimensions;
+            currentBestBird = newBestBird;
+
+            if (paramsChanged || restartTriggered) {
+                p.noLoop();
+                initialize();
+                previousParamsKey = paramsKey;
+                if (!props.paused) {
+                    p.loop();
+                }
             }
-            initialize();
-            p.loop();
+        }
+        if (props.paused !== undefined) {
+            if (props.paused) {
+                p.noLoop();
+            } else {
+                p.loop();
+            }
         }
     }
 
@@ -108,13 +182,42 @@ export default function sketch(p) {
         generation = 1;
         // Also clear history when initializing/restarting
         if (onGenerationEnd) {
-            onGenerationEnd(null); 
+            onGenerationEnd(null);
         }
         getNewPipes(pipes);
+
+        // Attempt to deserialize a champion brain if provided
+        let championBrain = null;
+        if (currentBestBird) {
+            try {
+                championBrain = NeuralNetwork.deserialize(currentBestBird);
+            } catch (e) {
+                championBrain = null;
+            }
+        }
+        // Reject networks that cannot consume the five simulation inputs or
+        // produce one flap decision, then require an exact configured topology.
+        if (championBrain) {
+            const championLayers = championBrain.layers.map(l => l.length);
+            if (!NeuralNetwork.isValidArchitecture(championLayers, 5, 1) ||
+                championLayers.length !== currentDimensions.length ||
+                !championLayers.every((d, i) => d === currentDimensions[i])) {
+                championBrain = null;
+            }
+        }
+
         for (let i = 0; i < numOfBirds; i++) {
             let bird = new Bird(100, 200);
-            nn = new NeuralNetwork(currentDimensions);
-            bird.setBrain(nn);
+            if (i === 0 && championBrain) {
+                // First bird gets exact copy of champion (elitism)
+                bird.setBrain(championBrain.copy());
+            } else if (championBrain) {
+                // Remaining birds get mutated versions of the champion
+                bird.setBrain(championBrain.mutate(mutationRate, mutationStrength));
+            } else {
+                nn = new NeuralNetwork(currentDimensions);
+                bird.setBrain(nn);
+            }
             birds.push(bird);
         }
         p.frameCount = 0;
@@ -185,7 +288,7 @@ export default function sketch(p) {
                 if (!bird.alive) continue;
 
                 const input = bird.inputs;
-                // NORMALIZED INPUTS (Values between 0 and 1 generally help NN learn faster)
+                // SCALED INPUTS (distance and velocity remain signed)
                 input[0] = bird.y / HEIGHT;
                 input[1] = closestPipe.y / HEIGHT; // Top of gap
                 input[2] = (closestPipe.y + Pipe.size) / HEIGHT; // Bottom of gap

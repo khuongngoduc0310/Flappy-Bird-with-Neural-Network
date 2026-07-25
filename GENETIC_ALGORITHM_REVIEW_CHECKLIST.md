@@ -56,6 +56,16 @@ Speed slider changed from high p5 FPS to `ticksPerFrame`. Rendering is fixed at 
 
 ---
 
+## Completed Features
+
+### [x] Champion brain persistence
+
+Implemented in `src/NeuralNet/nn.js` (serialize/deserialize), `src/sketches/sketch.js` (emit bestBrain, seed champion), `src/App.js` (localStorage save/load/clear), `src/App.css` (dark glass/cyan champion controls).
+
+A serialized champion includes the full layer architecture, weight matrices, and bias matrices. Deserialization requires positive integer layer sizes and validates matrix counts, dimensions, and finite values. Persistence also requires the Flappy Bird architecture (five inputs and one output) and associates valid score metadata with the brain, preventing corrupt data or stale scores from affecting auto-save. Normal UI loading adopts a valid champion's hidden-layer architecture; the sketch defensively falls back to `[5, 1]` random initialization for incompatible direct props.
+
+---
+
 ## Fitness Improvements
 
 ### [ ] Reward pipe passing
